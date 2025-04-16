@@ -47,16 +47,24 @@ def set_main_logger(logger , host = "\U0001F480"):
         "hostname": "",
     }
 
-def load_collectors(root, collectors_list) -> Tuple[List, List] :
+def load_collectors(root, collectors_list, config) -> Tuple[List, List] :
     loaded_collectors = []
     available_collectors = []
     for _, collector_name, _ in iter_modules(path=[f"{root}/collectors/"]):
         available_collectors.append(collector_name)
         if "All" in collectors_list:
             loaded_collectors.append(getattr(import_module(f"donpapi.collectors.{collector_name}"), collector_name))
+        elif "Custom" in collectors_list:
+            if collector_name in config.custom_collectors_list:
+                loaded_collectors.append(getattr(import_module(f"donpapi.collectors.{collector_name}"), collector_name))        
         else:
             if collector_name in collectors_list:
                 loaded_collectors.append(getattr(import_module(f"donpapi.collectors.{collector_name}"), collector_name))
+
+    if config.always_exclude_collectors:
+        for collector in loaded_collectors:
+            if collector.__name__ in config.always_exclude_collectors:
+                loaded_collectors.remove(collector)
     return available_collectors, loaded_collectors
 
 def fetch_all_computers(options):
@@ -215,7 +223,7 @@ def main():
     group_authent.add_argument("-r", "--recover-file", metavar="/home/user/.donpapi/recover/recover_1718281433", type=str, help="The recover file path. If used, the other parameters will be ignored")
 
     group_attacks = collect_subparser.add_argument_group('attacks')
-    group_attacks.add_argument('-c','--collectors', action="store", default="All",  help= ", ".join(load_collectors(root, [])[0])+", All (all previous) (default: All). Possible to chain multiple collectors comma separated")
+    group_attacks.add_argument('-c','--collectors', action="store", default="All",  help= ", ".join(load_collectors(root, [], DonPAPIConfig())[0])+", Custom (as specified in config), All (all previous) (default: All). Possible to chain multiple collectors comma separated")
     group_attacks.add_argument("-nr","--no-remoteops", action="store_true", help="Disable Remote Ops operations (basically no Remote Registry operations, no DPAPI System Credentials)")
     group_attacks.add_argument("--fetch-pvk", action="store_true", help=("Will automatically use domain backup key from database, and if not already dumped, will dump it on a domain controller"))
     group_attacks.add_argument("--pvkfile", action="store", help=("Pvk file with domain backup key"))
@@ -276,6 +284,11 @@ def main():
     donpapi_logger.display(f"DonPAPI Version {version}") 
     donpapi_logger.display(f"Output directory at {output_dir}")
 
+    # Parse config file ?
+    donpapi_config = DonPAPIConfig()
+    if not options.no_config:
+        donpapi_config = parse_config_file()
+
     # Load DB
     db_engine = create_db_engine(os.path.join(output_dir,DPP_DB_FILE))
     db = Database(db_engine)
@@ -330,7 +343,8 @@ def main():
             pvkbytes = fetch_domain_backupkey(options, db)
 
         # Handling collectors
-        _, collectors = load_collectors(root, options.collectors.split(","))
+        _, collectors = load_collectors(root, options.collectors.split(","), donpapi_config)
+        donpapi_logger.display(f"Loaded the following collectors: {','.join(collector.__name__ for collector in collectors)}")
 
         # Target selection
         targets = []
@@ -357,11 +371,6 @@ def main():
         else:
             donpapi_logger.display("Loaded {i} targets".format(i=len(targets)))
             donpapi_logger.debug(f"Targets :{targets}")
-
-        # Parse config file ?
-        donpapi_config = DonPAPIConfig()
-        if not options.no_config:
-            donpapi_config = parse_config_file()
 
         # Let's rock
         try:

@@ -129,7 +129,7 @@ authentication:
 
 attacks:
   -c COLLECTORS, --collectors COLLECTORS
-                        Chromium, Certificates, CredMan, Files, Firefox, MobaXterm, MRemoteNG, RDCMan, SCCM, Vaults, VNC, Wifi, All (all
+                        Chromium, Certificates, CredMan, Files, Firefox, MobaXterm, MRemoteNG, RDCMan, SCCM, Vaults, VNC, Wifi, Custom (as specified in config), All (all
                         previous) (default: All)
   -nr, --no-remoteops   Disable Remote Ops operations (basically no Remote Registry operations, no DPAPI System Credentials)
   --fetch-pvk           Will automatically use domain backup key from database, and if not already dumped, will dump it on a domain controller
@@ -181,7 +181,16 @@ share = C$
 remote_filepath = \Users\Default\AppData\Local\Temp
 filename_regex = \d{4}-\d{4}-\d{4}-[0-9]{4}
 file_extension = .log
-``` 
+```
+
+#### Collectors config
+
+The collectors section in the config offers the option to define a custom set of collectors to run, as well as to specify collectors that will always be excluded (for example when using 'All' as collector). The config file is located at ~/.donpapi/donpapi.conf.
+```toml
+[collectors]
+collectors_list = Chromium,Firefox,CredMan,MobaXterm,MRemoteNG,RDCMan,SCCM,Vaults,VNC,Wifi
+always_exclude = 
+```
 
 #### Recover
 
