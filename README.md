@@ -57,7 +57,7 @@ or (to dev)
 ```text
 git clone git+https://github.com/login-securite/DonPAPI.git
 cd DonPAPI
-poetry update
+poetry install
 poetry run DonPAPI
 ```
 
