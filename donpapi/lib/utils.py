@@ -12,6 +12,9 @@ from donpapi.lib.logger import donpapi_logger
 def create_recover_file(dirpath, targets, options):
     timestamp = int(time.time())
     filepath = os.path.join(dirpath, DPP_RECOVER_DIR_NAME, f"recover_{timestamp}")
+    recover_dirpath = os.path.join(dirpath, DPP_RECOVER_DIR_NAME)
+    if not os.path.exists(recover_dirpath):
+        os.makedirs(recover_dirpath)
     with open(filepath, "w") as f:
         write_recover_file(f, [f"{json.dumps(vars(options))}\n", ",".join(targets)])
 
